@@ -21,9 +21,9 @@ Now lets take a look at how we use Feed Protocol RNG in coinflip game program
 
 
 Feed Protocol RNG Program address(It is the same address for devnet, testnet and mainnet-beta)
-
+```
 const rngProgram = new anchor.web3.PublicKey('9uSwASSU59XvUS8d1UeU8EwrEzMGFdXZvQ4JSEAfcS7k');
-
+```
 Deriving a PDA that store the required feed accounts
 
     const current_feeds_account = PublicKey.findProgramAddressSync(
@@ -39,7 +39,7 @@ Getting account_info from the blockchain
 
 
 Parsing required data from the account data
-
+```
   const currentFeedsAccountData = deserialize(
     CurrentFeedSchema,
     CurrentFeed,
@@ -59,24 +59,24 @@ Parsing required data from the account data
   const fallbackAccount = new PublicKey(
     bs58.encode(currentFeedsAccountData.fallback_account).toString()
   );
-
+```
 Generating a keypair to use in RNG program
-
+```
   const tempKeypair = anchor.web3.Keypair.generate();
 
-
+```
 # Creating Instruction
 
 Player's decision(head or tails) is serialized to pass as instruction data. 
-
+```
   const playersDecision = { decision: new anchor.BN(decision) };
-
+```
         
 We create our instruction, then build it and finally send. Below account are necassary to CPI RNG program. 
 You can also include the accounts you want to use in your program. 
 However, when you make cpi into rng program the order of these accounts and their properties should be as below
 
-
+```
   const tx = await program.methods
     .getRandom(playersDecision)
     .accounts({
@@ -91,13 +91,14 @@ However, when you make cpi into rng program the order of these accounts and thei
     })
     .signers([player, tempKeypair])
     .rpc();
-           
+
+```   
 # Coin flip program
 
 
 Creating instruction for cross program invocation to RNG_PROGRAM
 
-
+```
   let instruction: Instruction = Instruction {
       program_id: *rng_program,
       accounts: vec![
@@ -113,8 +114,10 @@ Creating instruction for cross program invocation to RNG_PROGRAM
       data: vec![0],
   };
 
-Creating account infos for CPI to RNG_PROGRAM
+```
 
+Creating account infos for CPI to RNG_PROGRAM
+```
   let account_infos: &[AccountInfo; 8] = &[
       ctx.accounts.signer.to_account_info().clone(),
       ctx.accounts.feed_account_1.to_account_info().clone(),
@@ -125,16 +128,16 @@ Creating account infos for CPI to RNG_PROGRAM
       ctx.accounts.temp.to_account_info().clone(),
       ctx.accounts.system_program.to_account_info().clone(),
   ];
-
+```
 CPI to RNG_PROGRAM
-
+```
   invoke(&instruction, account_infos)?;
 
   let returned_data: (Pubkey, Vec<u8>) = get_return_data().unwrap();
-
+```
 
 Random number is returned from the RNG_PROGRAM
-
+```
   let random_number: RandomNumber;
   if &returned_data.0 == rng_program {
       random_number = RandomNumber::try_from_slice(&returned_data.1)?;
@@ -142,24 +145,24 @@ Random number is returned from the RNG_PROGRAM
   } else {
       return Err(ErrorCode::FailedToGetRandomNumber.into());
   }
-
+```
 Checking players input - zero is head, one is tails
-
+```
   if players_decision.decision != 0 && players_decision.decision != 1 {
       return Err(ErrorCode::InvalidDecision.into());
   }
-        
+```  
 we get the mod 2 of the random number. It is either one or zero
 then we compare with the player's decision just log a message. you can put here your program logic
-
+```
   if random_number.random_number % 2 == players_decision.decision{
       msg!("congragulations you win");
   }else{
       msg!("you lost");
   }
-
+```
 Accounts' signer and writable properties are necessary when we call RNG program
-
+```
     #[derive(Accounts)]
     pub struct GetRand<'info> {
         #[account(mut)]
@@ -183,3 +186,4 @@ Accounts' signer and writable properties are necessary when we call RNG program
     
         pub system_program: Program<'info, System>,
     }
+```
