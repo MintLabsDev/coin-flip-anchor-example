@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 use borsh::{BorshDeserialize, BorshSerialize};
 
+//coin flip program id
 declare_id!("5uNCDQwxG8dgdFsAYMzb6DS442bLbRp85P2dAn15rt4d");
 
 #[program]
