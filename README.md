@@ -69,122 +69,116 @@ Generating a keypair to use in RNG program
 
 Player's decision(head or tails) is serialized to pass as instruction data. 
 
-    const players_decision = new PlayersDecision();
-    players_decision.decision = head_or_tails;
+  const playersDecision = { decision: new anchor.BN(decision) };
+
         
 We create our instruction, then build it and finally send. Below account are necassary to CPI RNG program. 
 You can also include the accounts you want to use in your program. 
 However, when you make cpi into rng program the order of these accounts and their properties should be as below
 
-            const ix = new TransactionInstruction({
-      programId:coin_flip_program,
-      keys:[
-        {isSigner:true,isWritable:true,pubkey:payer.publicKey},
-        {isSigner:false,isWritable:false,pubkey:feed_account_1},
-        {isSigner:false,isWritable:false,pubkey:feed_account_2},
-        {isSigner:false,isWritable:false,pubkey:feed_account_3},
-        {isSigner:false,isWritable:false,pubkey:fallback_account},
-        {isSigner:false,isWritable:true,pubkey:current_feeds_account[0]},
-        {isSigner:true,isWritable:true,pubkey:temp.publicKey},
-        {isSigner:false,isWritable:false,pubkey:rng_program},
-        {isSigner:false,isWritable:false,pubkey:SystemProgram.programId},
-      ],
-      data:Buffer.from(encoded)});
-  
-  
-      const message = new TransactionMessage({
-        instructions: [ix],
-          payerKey: payer.publicKey,
-          recentBlockhash : (await connection.getLatestBlockhash()).blockhash
-        }).compileToV0Message();
-    
-        const tx = new VersionedTransaction(message);
-        tx.sign([payer,temp]);
-  
-      const sig = await connection.sendTransaction(tx);
+
+  const tx = await program.methods
+    .getRandom(playersDecision)
+    .accounts({
+      signer: player.publicKey,
+      feedAccount1: feedAccount1,
+      feedAccount2: feedAccount2,
+      feedAccount3: feedAccount3,
+      fallbackAccount: fallbackAccount,
+      currentFeedsAccount: current_feeds_account[0],
+      temp: tempKeypair.publicKey,
+      rngProgram: rngProgram,
+    })
+    .signers([player, tempKeypair])
+    .rpc();
            
 # Coin flip program
 
-We get our accounts
 
-  let accounts_iter: &mut std::slice::Iter<'_, AccountInfo<'_>> = &mut accounts.iter();
+Creating instruction for cross program invocation to RNG_PROGRAM
+        let instruction: Instruction = Instruction {
+            program_id: *rng_program,
+            accounts: vec![
+                ctx.accounts.signer.to_account_metas(Some(true))[0].clone(),
+                ctx.accounts.feed_account_1.to_account_metas(Some(false))[0].clone(),
+                ctx.accounts.feed_account_2.to_account_metas(Some(false))[0].clone(),
+                ctx.accounts.feed_account_3.to_account_metas(Some(false))[0].clone(),
+                ctx.accounts.fallback_account.to_account_metas(Some(false))[0].clone(),
+                ctx.accounts.current_feeds_account.to_account_metas(Some(false))[0].clone(),
+                ctx.accounts.temp.to_account_metas(Some(true))[0].clone(),
+                ctx.accounts.system_program.to_account_metas(Some(false))[0].clone(),
+            ],
+            data: vec![0],
+        };
 
-    let payer: &AccountInfo<'_> = next_account_info(accounts_iter)?;
-    let price_feed_account_1: &AccountInfo<'_> = next_account_info(accounts_iter)?;
-    let price_feed_account_2: &AccountInfo<'_> = next_account_info(accounts_iter)?;
-    let price_feed_account_3: &AccountInfo<'_> = next_account_info(accounts_iter)?;
-    let fallback_account: &AccountInfo<'_> = next_account_info(accounts_iter)?;
-    let current_feed_accounts: &AccountInfo<'_> = next_account_info(accounts_iter)?;
-    let temp: &AccountInfo<'_> = next_account_info(accounts_iter)?;
-    let rng_program: &AccountInfo<'_> = next_account_info(accounts_iter)?;
-    let system_program: &AccountInfo<'_> = next_account_info(accounts_iter)?;
+Creating account infos for CPI to RNG_PROGRAM
 
-Creating account metas for CPI to RNG_PROGRAM
-
-    let payer_meta = AccountMeta{ pubkey: *payer.key, is_signer: true, is_writable: true,};
-    let price_feed_account_1_meta = AccountMeta{ pubkey: *price_feed_account_1.key, is_signer: false, is_writable: false,};
-    let price_feed_account_2_meta = AccountMeta{ pubkey: *price_feed_account_2.key, is_signer: false, is_writable: false,};
-    let price_feed_account_3_meta = AccountMeta{ pubkey: *price_feed_account_3.key, is_signer: false, is_writable: false,};
-    let fallback_account_meta = AccountMeta{ pubkey: *fallback_account.key, is_signer: false, is_writable: false,};
-    let current_feed_accounts_meta = AccountMeta{ pubkey: *current_feed_accounts.key, is_signer: false, is_writable: true,};
-    let temp_meta = AccountMeta{ pubkey: *temp.key, is_signer: true, is_writable: true,};
-    let system_program_meta = AccountMeta{ pubkey: *system_program.key, is_signer: false, is_writable: false,};
-
-
-Creating instruction to cpi RNG PROGRAM
-
-    let ix:Instruction = Instruction { program_id: *rng_program.key,
-       accounts: [
-        payer_meta,
-        price_feed_account_1_meta,
-        price_feed_account_2_meta,
-        price_feed_account_3_meta,
-        fallback_account_meta,
-        current_feed_accounts_meta,
-        temp_meta,
-        system_program_meta,
-       ].to_vec(), data: [0].to_vec() };
+        let account_infos: &[AccountInfo; 8] = &[
+            ctx.accounts.signer.to_account_info().clone(),
+            ctx.accounts.feed_account_1.to_account_info().clone(),
+            ctx.accounts.feed_account_2.to_account_info().clone(),
+            ctx.accounts.feed_account_3.to_account_info().clone(),
+            ctx.accounts.fallback_account.to_account_info().clone(),
+            ctx.accounts.current_feeds_account.to_account_info().clone(),
+            ctx.accounts.temp.to_account_info().clone(),
+            ctx.accounts.system_program.to_account_info().clone(),
+        ];
 
 CPI to RNG_PROGRAM
 
-    invoke(&ix, 
-      &[
-        payer.clone(),
-        price_feed_account_1.clone(),
-        price_feed_account_2.clone(),
-        price_feed_account_3.clone(),
-        fallback_account.clone(),
-        current_feed_accounts.clone(),
-        temp.clone(),
-        system_program.clone()
-        ])?;
+        invoke(&instruction, account_infos)?;
 
-Checking players input - zero is head, one is tails
-
-    let players_decision: PlayersDecision = PlayersDecision::try_from_slice(&instruction_data)?;
-    if players_decision.decision != 0 && players_decision.decision != 1 {panic!()}
-
-
-    let returned_data:(Pubkey, Vec<u8>)= get_return_data().unwrap();
+        let returned_data: (Pubkey, Vec<u8>) = get_return_data().unwrap();
 
 Random number is returned from the RNG_PROGRAM
 
-    let random_number:RandomNumber;
-    if &returned_data.0 == rng_program.key{
-      random_number = RandomNumber::try_from_slice(&returned_data.1)?;
-      msg!("{}",random_number.random_number);
-    }else{
-        panic!();
-    }
+        let random_number: RandomNumber;
+        if &returned_data.0 == rng_program {
+            random_number = RandomNumber::try_from_slice(&returned_data.1)?;
+            msg!("{}", random_number.random_number);
 
-We get the mod 2 of the random number. It is either one or zero
 
-    let head_or_tails: u64 = random_number.random_number % 2;
+        } else {
+            return Err(ErrorCode::FailedToGetRandomNumber.into());
+        }
 
-Then we compare with the player's decision just log a message. you can put here your program logic
+Checking players input - zero is head, one is tails
 
-    if head_or_tails != players_decision.decision {
-        msg!("you lost");
-    }else{
-        msg!("congragulations you win");
+        if players_decision.decision != 0 && players_decision.decision != 1 {
+            return Err(ErrorCode::InvalidDecision.into());
+        }
+        
+we get the mod 2 of the random number. It is either one or zero
+then we compare with the player's decision just log a message. you can put here your program logic
+
+        if random_number.random_number % 2 == players_decision.decision{
+            msg!("congragulations you win");
+        }else{
+            msg!("you lost");
+        }
+
+Accounts' signer and writable properties are necessary when we call RNG program
+
+    #[derive(Accounts)]
+    pub struct GetRand<'info> {
+        #[account(mut)]
+        pub signer: Signer<'info>,
+        /// CHECK:
+        pub feed_account_1: AccountInfo<'info>,
+        /// CHECK:
+        pub feed_account_2: AccountInfo<'info>,
+        /// CHECK:
+        pub feed_account_3: AccountInfo<'info>,
+        /// CHECK:
+        pub fallback_account: AccountInfo<'info>,
+        #[account(mut)]
+        /// CHECK:
+        pub current_feeds_account: AccountInfo<'info>,
+        #[account(mut)]
+        /// CHECK:
+        pub temp: Signer<'info>,
+        /// CHECK:
+        pub rng_program: AccountInfo<'info>,
+    
+        pub system_program: Program<'info, System>,
     }
