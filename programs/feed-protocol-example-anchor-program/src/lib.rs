@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use borsh::{BorshDeserialize, BorshSerialize};
 
 //coin flip program id
-declare_id!("5uNCDQwxG8dgdFsAYMzb6DS442bLbRp85P2dAn15rt4d");
+declare_id!("FLmBnBhUHMB3avTpwHZ6UkFJX1ca6dxzmRARN7L5Ax7d");
 
 #[program]
 mod coin_flip {
@@ -96,6 +96,8 @@ pub enum ErrorCode {
 
 #[derive(Accounts)]
 pub struct GetRand<'info> {
+    #[account(mut)]
+    pub signer: Signer<'info>,
     /// CHECK:
     pub feed_account_1: AccountInfo<'info>,
     /// CHECK:
@@ -113,8 +115,7 @@ pub struct GetRand<'info> {
 
     /// CHECK:
     pub rng_program: AccountInfo<'info>,
-    #[account(mut)]
-    pub signer: Signer<'info>,
+
     pub system_program: Program<'info, System>,
 }
 

@@ -6,8 +6,7 @@ import { deserialize } from "borsh";
 import bs58 from "bs58";
 
 
-const provider = anchor.AnchorProvider.env()
-anchor.setProvider(provider);
+
 
 export class CurrentFeed {
   is_init: number = 0;
@@ -92,10 +91,20 @@ export const CurrentFeedSchema = new Map([
   ],
 ]);
 
+const authority = Keypair.fromSecretKey(Uint8Array.from([153,187,227,210,27,108,215,173,44,244,
+  156,74,194,28,155,122,71,217,19,208,234,242,206,140,90,56,195,207,
+  73,113,207,157,220,189,39,249,130,185,164,194,196,55,144,15,84,36,233,49,66,177,100,45,220,200,
+  12,207,135,110,74,254,221,39,178,75]))
+
 const rngProgram = new anchor.web3.PublicKey('9uSwASSU59XvUS8d1UeU8EwrEzMGFdXZvQ4JSEAfcS7k');
+process.env.ANCHOR_PROVIDER_URL = 'https://api.devnet.solana.com';
+process.env.ANCHOR_WALLET = './key.json';
+
+const provider = anchor.AnchorProvider.env()
+anchor.setProvider(provider);
 
 const program = new Program<CoinFlip>(
-  require("../target/idl/test_rng.json"),
+  require("../target/idl/coin_flip.json"),
   provider
 );
 
@@ -110,7 +119,7 @@ async function main(decision:number, player:Keypair) {
     [Buffer.from("c"), Buffer.from([1])],
     rngProgram
   );
-  console.log();
+
 
   const currentFeedsAccountInfo = await connection.getAccountInfo(
     current_feeds_account[0]
@@ -147,9 +156,9 @@ async function main(decision:number, player:Keypair) {
       feedAccount2: feedAccount2,
       feedAccount3: feedAccount3,
       fallbackAccount: fallbackAccount,
+      currentFeedsAccount: current_feeds_account[0],
       temp: tempKeypair.publicKey,
       rngProgram: rngProgram,
-      currentFeedsAccount: current_feeds_account[0],
     })
     .signers([player, tempKeypair])
     .rpc();
@@ -160,3 +169,4 @@ async function main(decision:number, player:Keypair) {
 
 
 
+main(1,authority)

@@ -1,6 +1,7 @@
 {
   "license": "ISC",
   "scripts": {
+    "start": "ts-node client/main.ts",
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
     "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check"
   },
