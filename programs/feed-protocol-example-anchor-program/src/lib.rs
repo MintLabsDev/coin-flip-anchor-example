@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use borsh::{BorshDeserialize, BorshSerialize};
 
-declare_id!("5fiZruYuczm75PhTWhkoug5xaZUPtLEmzqc2AWYyZDzM");
+declare_id!("5uNCDQwxG8dgdFsAYMzb6DS442bLbRp85P2dAn15rt4d");
 
 #[program]
 mod coin_flip {

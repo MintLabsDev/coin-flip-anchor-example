@@ -92,7 +92,7 @@ export const CurrentFeedSchema = new Map([
   ],
 ]);
 
-const rngProgram = new anchor.web3.PublicKey('5fiZruYuczm75PhTWhkoug5xaZUPtLEmzqc2AWYyZDzM');
+const rngProgram = new anchor.web3.PublicKey('9uSwASSU59XvUS8d1UeU8EwrEzMGFdXZvQ4JSEAfcS7k');
 
 const program = new Program<CoinFlip>(
   require("../target/idl/test_rng.json"),
