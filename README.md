@@ -1,26 +1,26 @@
 # coin-flip-anchor-example
-A simple coin flip game using feed protocol random number generator with anchor framework
+A simple coin flip game using feed FEED PROTOCOL RANDOM NUMBER GENERATOR PROGRAM with anchor framework
 
 
-Implementing Feed Protocol RNG to your program is very easy. You derive the needed accounts and pass into the instruction. And then in your program make a CPI to Feed Protocal RNG. 
+Implementing FEED PROTOCOL RANDOM NUMBER GENERATOR PROGRAM (FPRNG) to your program is very easy. You derive the needed accounts and pass into the instruction. And then in your program make a CPI to FPRNG. 
 In these simple example program we will cover every step of the implamaentation.
 Lets say you want to build an on-chain coin flip game. 
 First user chooses heads or tails and send this decision to your coinflip program. 
-Your coin flip program calls Feed Protocol RNG. 
-RNG program return a random number to your program.
+Your coin flip program calls FPRNG. 
+FPRNG return a random number to your program.
 You compare the returned random number with the user's decision in coinflip program.
 Finally coin flip program logs a message according to result.
 THIS ALL HAPPENS IN ONE TRANSACTION.
 You can store the random number in an account in your program.
-You can also try coinflip program on devnet and testnet
+You can also try coinflip program on Devnet and Testnet.
 
-Now lets take a look at how we use Feed Protocol RNG in coinflip game program
+Now lets take a look at how we use FPRNG in coinflip game program
 
 # Derivation of accounts
 
 
 
-Feed Protocol RNG Program address(It is the same address for devnet, testnet and mainnet-beta)
+FPRNG address(It is the same address for devnet, testnet and mainnet-beta)
 ```
 const rngProgram = new anchor.web3.PublicKey('9uSwASSU59XvUS8d1UeU8EwrEzMGFdXZvQ4JSEAfcS7k');
 ```
@@ -60,7 +60,7 @@ Parsing required data from the account data
     bs58.encode(currentFeedsAccountData.fallback_account).toString()
   );
 ```
-Generating a keypair to use in RNG program
+Generating a keypair to use in FPRNG
 ```
   const tempKeypair = anchor.web3.Keypair.generate();
 
@@ -72,9 +72,9 @@ Player's decision(head or tails) is serialized to pass as instruction data.
   const playersDecision = { decision: new anchor.BN(decision) };
 ```
         
-We create our instruction, then build it and finally send. Below account are necassary to CPI RNG program. 
+We create our instruction, then build it and finally send. Below account are necassary to CPI FPRNG. 
 You can also include the accounts you want to use in your program. 
-However, when you make cpi into rng program the order of these accounts and their properties should be as below
+However, when you make cpi into FPRNG the order of these accounts and their properties should be as below
 
 ```
   const tx = await program.methods
@@ -96,7 +96,7 @@ However, when you make cpi into rng program the order of these accounts and thei
 # Coin flip program
 
 
-Creating instruction for cross program invocation to RNG_PROGRAM
+Creating instruction for cross program invocation to FPRNG
 
 ```
   let instruction: Instruction = Instruction {
@@ -116,7 +116,7 @@ Creating instruction for cross program invocation to RNG_PROGRAM
 
 ```
 
-Creating account infos for CPI to RNG_PROGRAM
+Creating account infos for CPI to FPRNG
 ```
   let account_infos: &[AccountInfo; 8] = &[
       ctx.accounts.signer.to_account_info().clone(),
@@ -129,14 +129,14 @@ Creating account infos for CPI to RNG_PROGRAM
       ctx.accounts.system_program.to_account_info().clone(),
   ];
 ```
-CPI to RNG_PROGRAM
+CPI to FPRNG
 ```
   invoke(&instruction, account_infos)?;
 
   let returned_data: (Pubkey, Vec<u8>) = get_return_data().unwrap();
 ```
 
-Random number is returned from the RNG_PROGRAM
+Random number is returned from the FPRNG
 ```
   let random_number: RandomNumber;
   if &returned_data.0 == rng_program {
@@ -161,7 +161,7 @@ then we compare with the player's decision just log a message. you can put here 
       msg!("you lost");
   }
 ```
-Accounts' signer and writable properties are necessary when we call RNG program
+Accounts' signer and writable properties are necessary when we call FPRNG
 ```
     #[derive(Accounts)]
     pub struct GetRand<'info> {
