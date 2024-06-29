@@ -1,4 +1,4 @@
-# coin-flip-anchor-example
+# Coin Flip Anchor Example
 A simple coin flip game using feed FEED PROTOCOL RANDOM NUMBER GENERATOR PROGRAM with anchor framework
 
 
