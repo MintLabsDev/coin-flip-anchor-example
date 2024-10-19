@@ -92,7 +92,7 @@ export const CurrentFeedSchema = new Map([
 ]);
 
 
-const rngProgram = new anchor.web3.PublicKey('9uSwASSU59XvUS8d1UeU8EwrEzMGFdXZvQ4JSEAfcS7k');
+const rngProgram = new anchor.web3.PublicKey('FEED1qspts3SRuoEyG29NMNpsTKX8yG9NGMinNC4GeYB');
 process.env.ANCHOR_PROVIDER_URL = 'https://api.devnet.solana.com';
 process.env.ANCHOR_WALLET = './key.json';
 

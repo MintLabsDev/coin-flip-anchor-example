@@ -22,7 +22,7 @@ Now lets take a look at how we use FPRNG in coinflip game program
 
 FPRNG address(It is the same address for devnet, testnet and mainnet-beta)
 ```
-const rngProgram = new anchor.web3.PublicKey('9uSwASSU59XvUS8d1UeU8EwrEzMGFdXZvQ4JSEAfcS7k');
+const rngProgram = new anchor.web3.PublicKey('FEED1qspts3SRuoEyG29NMNpsTKX8yG9NGMinNC4GeYB');
 ```
 Deriving a PDA that store the required feed accounts
 
