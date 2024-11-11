@@ -20,51 +20,12 @@ Now lets take a look at how we use FPRNG in coinflip game program
 
 
 
-FPRNG address(It is the same address for devnet, testnet and mainnet-beta)
+FPRNG addresses(It is the same address for devnet, testnet and mainnet-beta)
 ```
 const rngProgram = new anchor.web3.PublicKey('FEED1qspts3SRuoEyG29NMNpsTKX8yG9NGMinNC4GeYB');
 ```
-Deriving a PDA that store the required feed accounts
-
-    const current_feeds_account = PublicKey.findProgramAddressSync(
-       [Buffer.from("c"), Buffer.from([1])],
-       rngProgram
-     );
-
-Getting account_info from the blockchain
-
-    const currentFeedsAccountInfo = await connection.getAccountInfo(
-      current_feeds_account[0]
-    );
 
 
-Parsing required data from the account data
-```
-  const currentFeedsAccountData = deserialize(
-    CurrentFeedSchema,
-    CurrentFeed,
-    currentFeedsAccountInfo?.data!
-  );
-
-  const feedAccount1 = new PublicKey(
-    bs58.encode(currentFeedsAccountData.account1).toString()
-  );
-  const feedAccount2 = new PublicKey(
-    bs58.encode(currentFeedsAccountData.account2).toString()
-  );
-  const feedAccount3 = new PublicKey(
-    bs58.encode(currentFeedsAccountData.account3).toString()
-  );
-
-  const fallbackAccount = new PublicKey(
-    bs58.encode(currentFeedsAccountData.fallback_account).toString()
-  );
-```
-Generating a keypair to use in FPRNG
-```
-  const tempKeypair = anchor.web3.Keypair.generate();
-
-```
 # Creating Instruction
 
 Player's decision(head or tails) is serialized to pass as instruction data. 
@@ -72,22 +33,13 @@ Player's decision(head or tails) is serialized to pass as instruction data.
   const playersDecision = { decision: new anchor.BN(decision) };
 ```
         
-We create our instruction, then build it and finally send. Below account are necassary to CPI FPRNG. 
-You can also include the accounts you want to use in your program. 
-However, when you make cpi into FPRNG the order of these accounts and their properties should be as below
+We create our instruction, then build it and finally send. Anchor handles entropy_account, fee_account and rng_program_account for us, because we defined them as constant accounts
 
 ```
   const tx = await program.methods
     .getRandom(playersDecision)
     .accounts({
       signer: player.publicKey,
-      feedAccount1: feedAccount1,
-      feedAccount2: feedAccount2,
-      feedAccount3: feedAccount3,
-      fallbackAccount: fallbackAccount,
-      currentFeedsAccount: current_feeds_account[0],
-      temp: tempKeypair.publicKey,
-      rngProgram: rngProgram,
     })
     .signers([player, tempKeypair])
     .rpc();
@@ -99,35 +51,30 @@ However, when you make cpi into FPRNG the order of these accounts and their prop
 Creating instruction for cross program invocation to FPRNG
 
 ```
-  let instruction: Instruction = Instruction {
-      program_id: *rng_program,
-      accounts: vec![
-          ctx.accounts.signer.to_account_metas(Some(true))[0].clone(),
-          ctx.accounts.feed_account_1.to_account_metas(Some(false))[0].clone(),
-          ctx.accounts.feed_account_2.to_account_metas(Some(false))[0].clone(),
-          ctx.accounts.feed_account_3.to_account_metas(Some(false))[0].clone(),
-          ctx.accounts.fallback_account.to_account_metas(Some(false))[0].clone(),
-          ctx.accounts.current_feeds_account.to_account_metas(Some(false))[0].clone(),
-          ctx.accounts.temp.to_account_metas(Some(true))[0].clone(),
-          ctx.accounts.system_program.to_account_metas(Some(false))[0].clone(),
-      ],
-      data: vec![0],
-  };
+        let instruction: Instruction = Instruction {
+            program_id: *rng_program,
+            accounts: vec![
+                ctx.accounts.signer.to_account_metas(Some(true))[0].clone(),
+                ctx.accounts.entropy_account.to_account_metas(Some(false))[0].clone(),
+                ctx.accounts.fee_account.to_account_metas(Some(false))[0].clone(),
+                ctx.accounts.system_program.to_account_metas(Some(false))[0].clone(),
+                ctx.accounts.credits_account.to_account_metas(Some(false))[0].clone(),
+            ],
+            data: vec![100],
+        };
+
 
 ```
 
 Creating account infos for CPI to FPRNG
 ```
-  let account_infos: &[AccountInfo; 8] = &[
-      ctx.accounts.signer.to_account_info().clone(),
-      ctx.accounts.feed_account_1.to_account_info().clone(),
-      ctx.accounts.feed_account_2.to_account_info().clone(),
-      ctx.accounts.feed_account_3.to_account_info().clone(),
-      ctx.accounts.fallback_account.to_account_info().clone(),
-      ctx.accounts.current_feeds_account.to_account_info().clone(),
-      ctx.accounts.temp.to_account_info().clone(),
-      ctx.accounts.system_program.to_account_info().clone(),
-  ];
+        let account_infos: &[AccountInfo; 4] = &[
+            ctx.accounts.signer.to_account_info().clone(),
+            ctx.accounts.entropy_account.to_account_info().clone(),
+            ctx.accounts.fee_account.to_account_info().clone(),
+            ctx.accounts.system_program.to_account_info().clone(),
+            ctx.accounts.credits_account.to_account_info().clone(),
+        ];
 ```
 CPI to FPRNG
 ```
@@ -162,28 +109,39 @@ then we compare with the player's decision just log a message. you can put here 
   }
 ```
 Accounts' signer and writable properties are necessary when we call FPRNG
+credits_account is optional when you call FPRNG program. You don't need to pass into CPI. 
+If you call FPRNG program with credits, the program will not charge per request and instead it decrease your credits.
+You can take a look at feedprotocol.xyz to get more info about credits 
 ```
-    #[derive(Accounts)]
-    pub struct GetRand<'info> {
-        #[account(mut)]
-        pub signer: Signer<'info>,
-        /// CHECK:
-        pub feed_account_1: AccountInfo<'info>,
-        /// CHECK:
-        pub feed_account_2: AccountInfo<'info>,
-        /// CHECK:
-        pub feed_account_3: AccountInfo<'info>,
-        /// CHECK:
-        pub fallback_account: AccountInfo<'info>,
-        #[account(mut)]
-        /// CHECK:
-        pub current_feeds_account: AccountInfo<'info>,
-        #[account(mut)]
-        /// CHECK:
-        pub temp: Signer<'info>,
-        /// CHECK:
-        pub rng_program: AccountInfo<'info>,
-    
-        pub system_program: Program<'info, System>,
-    }
+const ENTROPY_ACCOUNT_ADDRESS: Pubkey = pubkey!("CTyyJKQHo6JhtVYBaXcota9NozebV3vHF872S8ag2TUS");
+const FEE_ACCOUNT_ADDRESS: Pubkey = pubkey!("WjtcArL5m5peH8ZmAdTtyFF9qjyNxjQ2qp4Gz1YEQdy");
+const RNG_PROGRAM_ADDRESS: Pubkey = pubkey!("FEED1qspts3SRuoEyG29NMNpsTKX8yG9NGMinNC4GeYB");
+
+#[derive(Accounts)]
+pub struct GetRand<'info> {
+    #[account(mut)]
+    pub signer: Signer<'info>,
+
+    #[account(mut, address = ENTROPY_ACCOUNT_ADDRESS)]
+    /// CHECK: constant address
+    pub entropy_account: AccountInfo<'info>,
+
+    #[account(mut, address = FEE_ACCOUNT_ADDRESS)]
+    /// CHECK: constant address
+    pub fee_account: AccountInfo<'info>,
+
+    #[account(address = RNG_PROGRAM_ADDRESS)]
+    /// CHECK: constant address
+    pub rng_program: AccountInfo<'info>,
+
+    pub system_program: Program<'info, System>,
+
+        #[account(
+        mut,
+        seeds = [signer.key().as_ref(), rng_program.key().as_ref()],
+        bump
+    )]
+    /// CHECK: This is a PDA for the RNG program
+    pub credits_account: AccountInfo<'info>,
+}
 ```

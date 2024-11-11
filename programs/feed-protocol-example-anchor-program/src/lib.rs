@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use borsh::{BorshDeserialize, BorshSerialize};
 
 //coin flip program id
-declare_id!("FLmBnBhUHMB3avTpwHZ6UkFJX1ca6dxzmRARN7L5Ax7d");
+declare_id!("6XPBWp3kwsbVW5o1BBKjZQfbj8fcdgQJgNxHazxoZ3cm");
 
 #[program]
 mod coin_flip {
@@ -18,27 +18,22 @@ mod coin_flip {
             program_id: *rng_program,
             accounts: vec![
                 ctx.accounts.signer.to_account_metas(Some(true))[0].clone(),
-                ctx.accounts.feed_account_1.to_account_metas(Some(false))[0].clone(),
-                ctx.accounts.feed_account_2.to_account_metas(Some(false))[0].clone(),
-                ctx.accounts.feed_account_3.to_account_metas(Some(false))[0].clone(),
-                ctx.accounts.fallback_account.to_account_metas(Some(false))[0].clone(),
-                ctx.accounts.current_feeds_account.to_account_metas(Some(false))[0].clone(),
-                ctx.accounts.temp.to_account_metas(Some(true))[0].clone(),
+                ctx.accounts.entropy_account.to_account_metas(Some(false))[0].clone(),
+                ctx.accounts.fee_account.to_account_metas(Some(false))[0].clone(),
                 ctx.accounts.system_program.to_account_metas(Some(false))[0].clone(),
+                ctx.accounts.system_program.to_account_metas(Some(false))[0].clone(),
+                ctx.accounts.credits_account.to_account_metas(Some(false))[0].clone(),
             ],
-            data: vec![0],
+            data: vec![100],
         };
 
         //Creating account infos for CPI to RNG_PROGRAM
-        let account_infos: &[AccountInfo; 8] = &[
+        let account_infos: &[AccountInfo; 5] = &[
             ctx.accounts.signer.to_account_info().clone(),
-            ctx.accounts.feed_account_1.to_account_info().clone(),
-            ctx.accounts.feed_account_2.to_account_info().clone(),
-            ctx.accounts.feed_account_3.to_account_info().clone(),
-            ctx.accounts.fallback_account.to_account_info().clone(),
-            ctx.accounts.current_feeds_account.to_account_info().clone(),
-            ctx.accounts.temp.to_account_info().clone(),
+            ctx.accounts.entropy_account.to_account_info().clone(),
+            ctx.accounts.fee_account.to_account_info().clone(),
             ctx.accounts.system_program.to_account_info().clone(),
+            ctx.accounts.credits_account.to_account_info().clone(),
         ];
 
         //CPI to RNG_PROGRAM
@@ -94,28 +89,40 @@ pub enum ErrorCode {
 }
 
 
+const ENTROPY_ACCOUNT_ADDRESS: Pubkey = pubkey!("CTyyJKQHo6JhtVYBaXcota9NozebV3vHF872S8ag2TUS");
+const FEE_ACCOUNT_ADDRESS: Pubkey = pubkey!("WjtcArL5m5peH8ZmAdTtyFF9qjyNxjQ2qp4Gz1YEQdy");
+const RNG_PROGRAM_ADDRESS: Pubkey = pubkey!("FEED1qspts3SRuoEyG29NMNpsTKX8yG9NGMinNC4GeYB");
+
 #[derive(Accounts)]
 pub struct GetRand<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
-    /// CHECK:
-    pub feed_account_1: AccountInfo<'info>,
-    /// CHECK:
-    pub feed_account_2: AccountInfo<'info>,
-    /// CHECK:
-    pub feed_account_3: AccountInfo<'info>,
-    /// CHECK:
-    pub fallback_account: AccountInfo<'info>,
-    #[account(mut)]
-    /// CHECK:
-    pub current_feeds_account: AccountInfo<'info>,
-    #[account(mut)]
-    /// CHECK:
-    pub temp: Signer<'info>,
 
-    /// CHECK:
+    #[account(mut, address = ENTROPY_ACCOUNT_ADDRESS)]
+    /// CHECK: constant address
+    pub entropy_account: AccountInfo<'info>,
+
+    #[account(mut, address = FEE_ACCOUNT_ADDRESS)]
+    /// CHECK: constant address
+    pub fee_account: AccountInfo<'info>,
+
+    #[account(address = RNG_PROGRAM_ADDRESS)]
+    /// CHECK: constant address
     pub rng_program: AccountInfo<'info>,
 
     pub system_program: Program<'info, System>,
+
+
+    ///OPTIONAL (If you you a credit account you can pass this account to CPI)
+    ///You can pass without credits as well, program FPRNG program is not reverted
+    #[account(
+        mut,
+        seeds = [signer.key().as_ref(), rng_program.key().as_ref()],
+        bump
+    )]
+    /// CHECK: This is a PDA for the RNG program
+    pub credits_account: AccountInfo<'info>,
+
+
 }
 
