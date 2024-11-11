@@ -3,7 +3,7 @@ A simple coin flip game using feed FEED PROTOCOL RANDOM NUMBER GENERATOR PROGRAM
 
 
 Implementing FEED PROTOCOL RANDOM NUMBER GENERATOR PROGRAM (FPRNG) to your program is very easy. You derive the needed accounts and pass into the instruction. And then in your program make a CPI to FPRNG. 
-In these simple example program we will cover every step of the implamaentation.
+In these simple example program we will cover every step of the implementation.
 Lets say you want to build an on-chain coin flip game. 
 First user chooses heads or tails and send this decision to your coinflip program. 
 Your coin flip program calls FPRNG. 
